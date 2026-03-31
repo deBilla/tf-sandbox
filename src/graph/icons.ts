@@ -1,0 +1,75 @@
+export interface CategoryInfo {
+  icon: string;
+  color: string;
+  label: string;
+}
+
+const CATEGORY_MAP: [string, CategoryInfo][] = [
+  // GCP (longer prefixes first for matching)
+  ['google_service_account', { icon: '🔑', color: '#E53935', label: 'IAM' }],
+  ['google_project_iam',     { icon: '🛡️', color: '#E53935', label: 'IAM' }],
+  ['google_clouddeploy',     { icon: '🚀', color: '#00BFA5', label: 'Cloud Deploy' }],
+  ['google_monitoring',      { icon: '📊', color: '#F4B400', label: 'Monitoring' }],
+  ['google_container',       { icon: '☸️', color: '#326CE5', label: 'GKE' }],
+  ['google_compute',         { icon: '🖥️', color: '#4285F4', label: 'Compute' }],
+  ['google_storage',         { icon: '🪣', color: '#AB47BC', label: 'Storage' }],
+  ['google_logging',         { icon: '📋', color: '#F4B400', label: 'Logging' }],
+  ['google_project',         { icon: '📁', color: '#78909C', label: 'Project' }],
+  ['google_sql',             { icon: '🗄️', color: '#F57C00', label: 'Cloud SQL' }],
+  ['google_iam',             { icon: '🛡️', color: '#E53935', label: 'IAM' }],
+  // AWS
+  ['aws_lambda',   { icon: '⚡', color: '#FF9900', label: 'Lambda' }],
+  ['aws_instance', { icon: '🖥️', color: '#FF9900', label: 'EC2' }],
+  ['aws_vpc',      { icon: '🌐', color: '#FF9900', label: 'VPC' }],
+  ['aws_subnet',   { icon: '🌐', color: '#FF9900', label: 'VPC' }],
+  ['aws_security_group', { icon: '🛡️', color: '#FF9900', label: 'Security' }],
+  ['aws_s3',       { icon: '🪣', color: '#FF9900', label: 'S3' }],
+  ['aws_rds',      { icon: '🗄️', color: '#FF9900', label: 'RDS' }],
+  ['aws_db',       { icon: '🗄️', color: '#FF9900', label: 'RDS' }],
+  ['aws_iam',      { icon: '🛡️', color: '#FF9900', label: 'IAM' }],
+  ['aws_ecs',      { icon: '☸️', color: '#FF9900', label: 'ECS' }],
+  ['aws_eks',      { icon: '☸️', color: '#FF9900', label: 'EKS' }],
+  ['aws_lb',       { icon: '⚖️', color: '#FF9900', label: 'ELB' }],
+  ['aws_alb',      { icon: '⚖️', color: '#FF9900', label: 'ALB' }],
+  ['aws_route53',  { icon: '🌍', color: '#FF9900', label: 'Route53' }],
+  ['aws_cloudfront', { icon: '🌍', color: '#FF9900', label: 'CloudFront' }],
+  // Azure
+  ['azurerm_kubernetes',    { icon: '☸️', color: '#0078D4', label: 'AKS' }],
+  ['azurerm_virtual',       { icon: '🖥️', color: '#0078D4', label: 'VM' }],
+  ['azurerm_resource_group', { icon: '📁', color: '#0078D4', label: 'Resource Group' }],
+  ['azurerm_storage',       { icon: '🪣', color: '#0078D4', label: 'Storage' }],
+  ['azurerm_network',       { icon: '🌐', color: '#0078D4', label: 'Network' }],
+];
+
+const DEFAULT_CATEGORY: CategoryInfo = { icon: '📦', color: '#78909C', label: 'Resource' };
+
+export function getCategoryForType(resourceType: string): CategoryInfo {
+  for (const [prefix, info] of CATEGORY_MAP) {
+    if (resourceType.startsWith(prefix)) return info;
+  }
+  return DEFAULT_CATEGORY;
+}
+
+export const PROVIDER_COLORS: Record<string, string> = {
+  google: '#4285F4',
+  aws: '#FF9900',
+  azurerm: '#0078D4',
+  null: '#78909C',
+  random: '#78909C',
+  local: '#78909C',
+  template: '#78909C',
+};
+
+export function getProviderColor(provider?: string): string {
+  if (!provider) return '#78909C';
+  return PROVIDER_COLORS[provider] ?? '#78909C';
+}
+
+export const KIND_STYLES: Record<string, { icon: string; borderColor: string }> = {
+  variable: { icon: '📥', borderColor: '#6b7280' },
+  output: { icon: '📤', borderColor: '#22c55e' },
+  module: { icon: '📦', borderColor: '#8b5cf6' },
+  data: { icon: '🔍', borderColor: '#06b6d4' },
+  provider: { icon: '☁️', borderColor: '#94a3b8' },
+  locals: { icon: '📌', borderColor: '#f59e0b' },
+};
