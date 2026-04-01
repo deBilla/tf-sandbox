@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "fetch-pricing": "node scripts/fetch-pricing.mjs",
+    "prebuild": "node scripts/fetch-pricing.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
