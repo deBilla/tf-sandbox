@@ -2,6 +2,9 @@ import { createContext, useContext, useReducer, useEffect, useRef, type ReactNod
 import { reducer, initialState, type AppState, type Action } from './reducer';
 import { parseTerraform, waitForParser } from '../parser';
 import { validate } from '../validator';
+import { annotateCosts } from '../tools/cost/parser';
+import { parseStateJson, computeDrift } from '../tools/drift/parser';
+import { parseRBAC } from '../tools/rbac/parser';
 
 interface AppContextValue {
   state: AppState;
@@ -20,7 +23,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     waitForParser().then((ok) => {
       parserReadyRef.current = true;
       if (ok) console.log('Tree-sitter HCL parser ready');
-      // Re-parse with tree-sitter now available
       if (state.code) {
         const graph = parseTerraform(state.code);
         dispatch({ type: 'SET_GRAPH', payload: graph });
@@ -30,18 +32,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Debounced parse + validate on code change
+  // Debounced parse + validate on code/tool change
   useEffect(() => {
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      const graph = parseTerraform(state.code);
-      dispatch({ type: 'SET_GRAPH', payload: graph });
+      const tool = state.activeTool;
 
-      const report = validate(state.code, graph);
-      dispatch({ type: 'SET_VALIDATION', payload: report });
+      if (tool === 'terraform' || tool === 'cost') {
+        const graph = parseTerraform(state.code);
+        dispatch({ type: 'SET_GRAPH', payload: graph });
+
+        if (tool === 'terraform') {
+          const report = validate(state.code, graph);
+          dispatch({ type: 'SET_VALIDATION', payload: report });
+        }
+
+        if (tool === 'cost') {
+          const costs = annotateCosts(graph);
+          dispatch({ type: 'SET_COST_DATA', payload: costs });
+        }
+      } else if (tool === 'drift') {
+        // Primary code = state JSON, secondary = .tf code
+        const stateGraph = parseStateJson(state.code);
+        dispatch({ type: 'SET_GRAPH', payload: stateGraph });
+
+        if (state.secondaryCode) {
+          const codeGraph = parseTerraform(state.secondaryCode);
+          const drift = computeDrift(codeGraph, stateGraph);
+          dispatch({ type: 'SET_DRIFT_DATA', payload: drift });
+        }
+      } else if (tool === 'rbac') {
+        const { graph, rbac } = parseRBAC(state.code);
+        dispatch({ type: 'SET_GRAPH', payload: graph });
+        dispatch({ type: 'SET_RBAC_DATA', payload: rbac });
+      }
     }, 300);
     return () => clearTimeout(timerRef.current);
-  }, [state.code]);
+  }, [state.code, state.secondaryCode, state.activeTool]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

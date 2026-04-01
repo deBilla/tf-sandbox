@@ -2,6 +2,7 @@ import { useRef, useCallback, useEffect } from 'react';
 import Editor, { type OnMount, type BeforeMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { useAppState } from '../store/context';
+import { getToolById } from '../tools/registry';
 
 export function EditorPanel() {
   const { state, dispatch } = useAppState();
@@ -131,7 +132,7 @@ export function EditorPanel() {
   return (
     <div className="h-full flex flex-col bg-slate-900">
       <div className="flex items-center justify-between px-3 py-2 bg-slate-800 border-b border-slate-700">
-        <span className="text-xs font-medium text-slate-400">Terraform Editor</span>
+        <span className="text-xs font-medium text-slate-400">{getToolById(state.activeTool)?.label ?? 'Editor'}</span>
         <div className="flex gap-1.5">
           <button
             onClick={() => dispatch({ type: 'CLEAR' })}
@@ -143,7 +144,7 @@ export function EditorPanel() {
       </div>
       <div className="flex-1 min-h-0">
         <Editor
-          defaultLanguage="hcl"
+          language={getToolById(state.activeTool)?.editorLanguage ?? 'hcl'}
           theme="tf-dark"
           value={state.code}
           onChange={handleChange}

@@ -4,6 +4,22 @@ import type { BlockKind } from '../parser/types';
 
 export function SummaryBar() {
   const { state } = useAppState();
+  const tool = state.activeTool;
+
+  if (tool === 'terraform' || tool === 'cost') {
+    return <TerraformSummary />;
+  }
+  if (tool === 'drift') {
+    return <DriftSummary />;
+  }
+  if (tool === 'rbac') {
+    return <RBACSummary />;
+  }
+  return null;
+}
+
+function TerraformSummary() {
+  const { state } = useAppState();
   const { blocks, edges, errors } = state.graph;
 
   const counts = useMemo(() => {
@@ -15,21 +31,8 @@ export function SummaryBar() {
   }, [blocks]);
 
   const warnings = useMemo(() => {
-    const w: string[] = [];
-    // Unused variables
-    const varIds = new Set(blocks.filter(b => b.kind === 'variable').map(b => b.id));
-    const referencedIds = new Set(edges.map(e => e.target));
-    for (const id of varIds) {
-      if (!referencedIds.has(id)) {
-        w.push(`Unused variable: ${id}`);
-      }
-    }
-    // Dangling references from errors
-    for (const err of errors) {
-      if (err.severity === 'warning') w.push(err.message);
-    }
-    return w;
-  }, [blocks, edges, errors]);
+    return errors.filter(e => e.severity === 'warning');
+  }, [errors]);
 
   const parseErrors = errors.filter(e => e.severity === 'error');
 
@@ -44,15 +47,65 @@ export function SummaryBar() {
       <span className="text-slate-400">
         Edges: <span className="text-slate-200">{edges.length}</span>
       </span>
+      {state.activeTool === 'cost' && state.costData && (
+        <>
+          <div className="text-slate-500">|</div>
+          <span className="text-green-400 font-medium">
+            ~${state.costData.totalMonthlyCost.toLocaleString()}/mo
+          </span>
+        </>
+      )}
       {parseErrors.length > 0 && (
         <span className="text-red-400">
-          🔴 {parseErrors.length} error{parseErrors.length > 1 ? 's' : ''}
+          {parseErrors.length} error{parseErrors.length > 1 ? 's' : ''}
         </span>
       )}
       {warnings.length > 0 && (
-        <span className="text-amber-400 cursor-help" title={warnings.join('\n')}>
-          ⚠ {warnings.length} warning{warnings.length > 1 ? 's' : ''}
+        <span className="text-amber-400 cursor-help" title={warnings.map(w => w.message).join('\n')}>
+          {warnings.length} warning{warnings.length > 1 ? 's' : ''}
         </span>
+      )}
+    </div>
+  );
+}
+
+function DriftSummary() {
+  const { state } = useAppState();
+  const drift = state.driftData;
+
+  return (
+    <div className="flex items-center gap-4 px-4 py-2 bg-slate-800 border-b border-slate-700 text-xs">
+      {drift ? (
+        <>
+          <span className="text-slate-400">Total: <span className="text-slate-200">{drift.summary.total}</span></span>
+          <span className="text-green-400">In Sync: {drift.summary.inSync}</span>
+          {drift.summary.drifted > 0 && <span className="text-amber-400">Drifted: {drift.summary.drifted}</span>}
+          {drift.summary.missingInState > 0 && <span className="text-red-400">Not Deployed: {drift.summary.missingInState}</span>}
+          {drift.summary.missingInCode > 0 && <span className="text-blue-400">Not in Code: {drift.summary.missingInCode}</span>}
+        </>
+      ) : (
+        <span className="text-slate-500">Paste terraform show -json output to detect drift</span>
+      )}
+    </div>
+  );
+}
+
+function RBACSummary() {
+  const { state } = useAppState();
+  const rbac = state.rbacData;
+
+  return (
+    <div className="flex items-center gap-4 px-4 py-2 bg-slate-800 border-b border-slate-700 text-xs">
+      {rbac ? (
+        <>
+          <span className="text-purple-400">Roles: {rbac.principals.length}</span>
+          <span className="text-blue-400">Policies: {rbac.bindings.length}</span>
+          {rbac.issues.length > 0 && (
+            <span className="text-red-400">{rbac.issues.length} issue{rbac.issues.length > 1 ? 's' : ''}</span>
+          )}
+        </>
+      ) : (
+        <span className="text-slate-500">Paste IAM policy JSON to analyze</span>
       )}
     </div>
   );
