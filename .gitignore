@@ -11,6 +11,14 @@ node_modules
 dist
 dist-ssr
 *.local
+.vite
+
+# OPA build artifacts (keep only policies/terraform.rego source)
+policies/.manifest
+policies/bundle.tar.gz
+policies/data.json
+policies/policies/
+policies/policy.wasm
 
 # Editor directories and files
 .vscode/*
