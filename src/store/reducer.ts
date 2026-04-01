@@ -1,4 +1,5 @@
 import type { TFGraph, ParseError } from '../parser/types';
+import type { ValidationReport } from '../validator';
 
 export interface AppState {
   code: string;
@@ -6,6 +7,8 @@ export interface AppState {
   selectedNodeId: string | null;
   files: { name: string; content: string }[];
   errors: ParseError[];
+  validation: ValidationReport | null;
+  activeDetailTab: 'detail' | 'validation';
 }
 
 export type Action =
@@ -14,6 +17,8 @@ export type Action =
   | { type: 'SELECT_NODE'; payload: string | null }
   | { type: 'ADD_FILES'; payload: { name: string; content: string }[] }
   | { type: 'REMOVE_FILE'; payload: string }
+  | { type: 'SET_VALIDATION'; payload: ValidationReport }
+  | { type: 'SET_DETAIL_TAB'; payload: 'detail' | 'validation' }
   | { type: 'CLEAR' };
 
 export const initialState: AppState = {
@@ -22,6 +27,8 @@ export const initialState: AppState = {
   selectedNodeId: null,
   files: [],
   errors: [],
+  validation: null,
+  activeDetailTab: 'detail',
 };
 
 export function reducer(state: AppState, action: Action): AppState {
@@ -42,6 +49,10 @@ export function reducer(state: AppState, action: Action): AppState {
       const combined = newFiles.map(f => `# --- ${f.name} ---\n${f.content}`).join('\n\n');
       return { ...state, files: newFiles, code: combined };
     }
+    case 'SET_VALIDATION':
+      return { ...state, validation: action.payload };
+    case 'SET_DETAIL_TAB':
+      return { ...state, activeDetailTab: action.payload };
     case 'CLEAR':
       return { ...initialState };
     default:

@@ -38,99 +38,144 @@ function downloadImage(dataUrl: string, filename: string) {
   a.click();
 }
 
+function ExportOverlay({ message }: { message: string }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-slate-800 border border-slate-600 rounded-xl px-8 py-6 flex flex-col items-center gap-4 shadow-2xl">
+        {/* Spinner */}
+        <div className="relative w-12 h-12">
+          <svg className="w-12 h-12" viewBox="0 0 48 48" style={{ animation: 'spin 1s linear infinite' }}>
+            <circle cx="24" cy="24" r="20" fill="none" stroke="#334155" strokeWidth="4" />
+            <circle cx="24" cy="24" r="20" fill="none" stroke="#60a5fa" strokeWidth="4"
+              strokeDasharray="80 126" strokeLinecap="round"
+            />
+          </svg>
+        </div>
+        <div className="text-sm font-medium text-slate-200">{message}</div>
+        {/* Progress bar animation */}
+        <div className="w-48 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+          <div className="h-full bg-blue-500 rounded-full"
+            style={{
+              animation: 'progress 2s ease-in-out infinite',
+            }}
+          />
+        </div>
+      </div>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg) } }
+        @keyframes progress {
+          0% { width: 0%; }
+          50% { width: 80%; }
+          100% { width: 100%; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 function ExportButtons() {
   const { getNodes, getNodesBounds } = useReactFlow();
-  const [exporting, setExporting] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  const doExport = useCallback((format: 'png' | 'svg') => {
+  const showStatus = useCallback((msg: string, duration = 2000) => {
+    setStatus(msg);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setStatus(null), duration);
+  }, []);
+
+  const getExportOpts = useCallback(() => {
     const viewport = document.querySelector('.react-flow__viewport') as HTMLElement;
-    if (!viewport) return;
+    if (!viewport) return null;
 
     const nodes = getNodes();
-    if (nodes.length === 0) return;
-
-    setExporting(true);
+    if (nodes.length === 0) return null;
 
     const bounds = getNodesBounds(nodes.map(n => n.id));
     const padding = 50;
     const imageWidth = bounds.width + padding * 2;
     const imageHeight = bounds.height + padding * 2;
-
     const vp = getViewportForBounds(bounds, imageWidth, imageHeight, 0.5, 2, padding);
 
-    const opts = {
-      backgroundColor: '#0f172a',
-      width: imageWidth,
-      height: imageHeight,
-      skipFonts: true,
-      style: {
-        width: `${imageWidth}px`,
-        height: `${imageHeight}px`,
-        transform: `translate(${vp.x}px, ${vp.y}px) scale(${vp.zoom})`,
+    return {
+      viewport,
+      opts: {
+        backgroundColor: '#0f172a',
+        width: imageWidth,
+        height: imageHeight,
+        skipFonts: true,
+        style: {
+          width: `${imageWidth}px`,
+          height: `${imageHeight}px`,
+          transform: `translate(${vp.x}px, ${vp.y}px) scale(${vp.zoom})`,
+        },
       },
     };
-
-    const fn = format === 'svg' ? toSvg : toPng;
-    const ext = format === 'svg' ? 'svg' : 'png';
-
-    fn(viewport, opts)
-      .then((dataUrl) => {
-        downloadImage(dataUrl, `terraform-diagram.${ext}`);
-      })
-      .catch((err) => {
-        console.error('Export failed:', err);
-      })
-      .finally(() => {
-        setExporting(false);
-      });
   }, [getNodes, getNodesBounds]);
 
+  // Defer the actual work to next animation frame so the overlay paints first
+  const deferWork = useCallback((work: () => Promise<void>) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        work();
+      });
+    });
+  }, []);
+
+  const doExport = useCallback((format: 'png' | 'svg') => {
+    const exp = getExportOpts();
+    if (!exp) return;
+
+    showStatus(`Rendering ${format.toUpperCase()}...`, 30000);
+
+    deferWork(async () => {
+      try {
+        const fn = format === 'svg' ? toSvg : toPng;
+        const dataUrl = await fn(exp.viewport, exp.opts);
+        downloadImage(dataUrl, `terraform-diagram.${format}`);
+        showStatus(`${format.toUpperCase()} downloaded`);
+      } catch {
+        showStatus('Export failed');
+      }
+    });
+  }, [getExportOpts, showStatus, deferWork]);
+
   const copyToClipboard = useCallback(() => {
-    const viewport = document.querySelector('.react-flow__viewport') as HTMLElement;
-    if (!viewport) return;
+    const exp = getExportOpts();
+    if (!exp) return;
 
-    const nodes = getNodes();
-    if (nodes.length === 0) return;
+    showStatus('Copying to clipboard...', 30000);
 
-    setExporting(true);
-
-    const bounds = getNodesBounds(nodes.map(n => n.id));
-    const padding = 50;
-    const imageWidth = bounds.width + padding * 2;
-    const imageHeight = bounds.height + padding * 2;
-    const vp = getViewportForBounds(bounds, imageWidth, imageHeight, 0.5, 2, padding);
-
-    toPng(viewport, {
-      backgroundColor: '#0f172a',
-      width: imageWidth,
-      height: imageHeight,
-      skipFonts: true,
-      style: {
-        width: `${imageWidth}px`,
-        height: `${imageHeight}px`,
-        transform: `translate(${vp.x}px, ${vp.y}px) scale(${vp.zoom})`,
-      },
-    })
-      .then(async (dataUrl) => {
+    deferWork(async () => {
+      try {
+        const dataUrl = await toPng(exp.viewport, exp.opts);
         const res = await fetch(dataUrl);
         const blob = await res.blob();
         await navigator.clipboard.write([
           new ClipboardItem({ 'image/png': blob }),
         ]);
-      })
-      .catch((err) => {
-        console.error('Copy failed:', err);
-      })
-      .finally(() => {
-        setExporting(false);
-      });
-  }, [getNodes, getNodesBounds]);
+        showStatus('Copied to clipboard');
+      } catch {
+        showStatus('Copy failed');
+      }
+    });
+  }, [getExportOpts, showStatus, deferWork]);
+
+  const busy = !!status?.includes('...');
 
   return (
-    <div className="flex gap-1">
+    <div className="flex items-center gap-1.5">
+      {busy && <ExportOverlay message={status!} />}
+      {status && !busy && (
+        <span className={`text-xs px-2.5 py-1 rounded-md ${
+          status.includes('failed') ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300'
+        } flex items-center gap-1.5`}>
+          {status.includes('failed') ? '\u2718' : '\u2714'} {status}
+        </span>
+      )}
       <button
         onClick={copyToClipboard}
-        disabled={exporting}
+        disabled={!!busy}
         className="text-xs px-2.5 py-1.5 rounded-md bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-slate-100 transition-colors disabled:opacity-50 flex items-center gap-1.5"
         title="Copy to clipboard"
       >
@@ -141,7 +186,7 @@ function ExportButtons() {
       </button>
       <button
         onClick={() => doExport('png')}
-        disabled={exporting}
+        disabled={!!busy}
         className="text-xs px-2.5 py-1.5 rounded-md bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-slate-100 transition-colors disabled:opacity-50 flex items-center gap-1.5"
         title="Download as PNG"
       >
@@ -152,7 +197,7 @@ function ExportButtons() {
       </button>
       <button
         onClick={() => doExport('svg')}
-        disabled={exporting}
+        disabled={!!busy}
         className="text-xs px-2.5 py-1.5 rounded-md bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-slate-100 transition-colors disabled:opacity-50 flex items-center gap-1.5"
         title="Download as SVG"
       >

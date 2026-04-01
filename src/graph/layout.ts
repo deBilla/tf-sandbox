@@ -23,6 +23,22 @@ export function computeLayout(
     return { nodes: [], edges: [] };
   }
 
+  try {
+    return doLayout(blocks, edges);
+  } catch (e) {
+    console.error('Layout failed:', e);
+    // Emergency fallback: place nodes in a grid
+    const flowNodes: Node[] = blocks.map((block, i) => ({
+      id: block.id,
+      type: block.kind === 'resource' ? 'tfResource' : 'tfGeneric',
+      position: { x: (i % 4) * 300, y: Math.floor(i / 4) * 120 },
+      data: { block, ...(block.kind === 'resource' ? { category: getCategoryForType(block.type ?? ''), providerColor: getProviderColor(block.provider) } : KIND_STYLES[block.kind] ?? KIND_STYLES.variable) },
+    }));
+    return { nodes: flowNodes, edges: [] };
+  }
+}
+
+function doLayout(blocks: TFBlock[], edges: TFEdge[]): { nodes: Node[]; edges: Edge[] } {
   const g = new dagre.graphlib.Graph();
   g.setGraph({
     rankdir: 'LR',
