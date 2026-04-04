@@ -15,6 +15,9 @@ export function SummaryBar() {
   if (tool === 'rbac') {
     return <RBACSummary />;
   }
+  if (tool === 'mlops') {
+    return <MLOpsSummary />;
+  }
   return null;
 }
 
@@ -106,6 +109,36 @@ function RBACSummary() {
         </>
       ) : (
         <span className="text-slate-500">Paste IAM policy JSON to analyze</span>
+      )}
+    </div>
+  );
+}
+
+function MLOpsSummary() {
+  const { state } = useAppState();
+  const mlops = state.mlopsData;
+
+  return (
+    <div className="flex items-center gap-4 px-4 py-2 bg-slate-800 border-b border-slate-700 text-xs">
+      {mlops && mlops.stages.length > 0 ? (
+        <>
+          <span className="text-slate-300 font-medium">{mlops.name}</span>
+          <span className={
+            mlops.provider === 'aws' ? 'text-orange-400' :
+            mlops.provider === 'gcp' ? 'text-blue-400' :
+            'text-red-400'
+          }>
+            {mlops.provider.toUpperCase()}
+          </span>
+          <span className="text-emerald-400">Stages: {mlops.stages.length}</span>
+          {mlops.recommendations.length > 0 && (
+            <span className="text-amber-400">
+              {mlops.recommendations.length} tip{mlops.recommendations.length > 1 ? 's' : ''}
+            </span>
+          )}
+        </>
+      ) : (
+        <span className="text-slate-500">Define an MLOps workflow in JSON or select a preset</span>
       )}
     </div>
   );

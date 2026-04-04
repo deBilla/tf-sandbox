@@ -1,6 +1,6 @@
 import type { TFGraph, ParseError } from '../parser/types';
 import type { ValidationReport } from '../validator';
-import type { ToolId, CostAnnotations, DriftReport, RBACGraph } from '../tools/types';
+import type { ToolId, CostAnnotations, DriftReport, RBACGraph, MLOpsWorkflow } from '../tools/types';
 
 export interface AppState {
   activeTool: ToolId;
@@ -16,6 +16,7 @@ export interface AppState {
   costData: CostAnnotations | null;
   driftData: DriftReport | null;
   rbacData: RBACGraph | null;
+  mlopsData: MLOpsWorkflow | null;
 }
 
 export type Action =
@@ -31,6 +32,7 @@ export type Action =
   | { type: 'SET_COST_DATA'; payload: CostAnnotations }
   | { type: 'SET_DRIFT_DATA'; payload: DriftReport }
   | { type: 'SET_RBAC_DATA'; payload: RBACGraph }
+  | { type: 'SET_MLOPS_DATA'; payload: MLOpsWorkflow }
   | { type: 'CLEAR' };
 
 export const initialState: AppState = {
@@ -46,12 +48,14 @@ export const initialState: AppState = {
   costData: null,
   driftData: null,
   rbacData: null,
+  mlopsData: null,
 };
 
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'SET_TOOL': {
-      const keepCode = action.payload === 'cost' && state.activeTool === 'terraform';
+      const keepCode = (action.payload === 'cost' || action.payload === 'mlops') && state.activeTool === 'terraform'
+        || action.payload === 'terraform' && state.activeTool === 'mlops';
       return {
         ...initialState,
         activeTool: action.payload,
@@ -87,6 +91,8 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, driftData: action.payload };
     case 'SET_RBAC_DATA':
       return { ...state, rbacData: action.payload };
+    case 'SET_MLOPS_DATA':
+      return { ...state, mlopsData: action.payload };
     case 'CLEAR':
       return { ...initialState, activeTool: state.activeTool };
     default:

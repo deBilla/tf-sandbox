@@ -1,4 +1,4 @@
-export type ToolId = 'terraform' | 'cost' | 'drift' | 'rbac';
+export type ToolId = 'terraform' | 'cost' | 'drift' | 'rbac' | 'mlops';
 
 export interface ToolDescriptor {
   id: ToolId;
@@ -61,4 +61,47 @@ export interface RBACGraph {
   principals: RBACPrincipal[];
   bindings: RBACBinding[];
   issues: RBACIssue[];
+}
+
+// MLOps types
+
+export type MLOpsStageType =
+  | 'data_ingestion'
+  | 'data_preprocessing'
+  | 'feature_engineering'
+  | 'model_training'
+  | 'model_evaluation'
+  | 'model_registry'
+  | 'model_deployment'
+  | 'monitoring'
+  | 'cicd_trigger'
+  | 'ab_testing'
+  | 'batch_inference'
+  | 'realtime_inference'
+  | 'data_storage'
+  | 'artifact_storage';
+
+export interface MLOpsStageMeta {
+  id: string;
+  name: string;
+  type: MLOpsStageType;
+  service: string;
+  description: string;
+  whyItMatters: string;
+  commonPitfalls: string[];
+  bestPractices: string[];
+  providerNotes: string;
+}
+
+export interface MLOpsRecommendation {
+  stageId: string;
+  severity: 'info' | 'warning';
+  message: string;
+}
+
+export interface MLOpsWorkflow {
+  name: string;
+  provider: 'aws' | 'gcp' | 'openstack';
+  stages: MLOpsStageMeta[];
+  recommendations: MLOpsRecommendation[];
 }

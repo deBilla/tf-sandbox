@@ -10,6 +10,7 @@ import { ToolSwitcher } from './tools/ToolSwitcher';
 import { CostSummaryPanel } from './tools/cost/CostSummaryPanel';
 import { DriftReportPanel } from './tools/drift/DriftReportPanel';
 import { RBACDetailPanel } from './tools/rbac/RBACDetailPanel';
+import { MLOpsDetailPanel } from './tools/mlops/MLOpsDetailPanel';
 import { getToolById } from './tools/registry';
 
 function RightPanel() {
@@ -32,6 +33,8 @@ function RightPanel() {
     tabs.push({ id: 'drift', label: 'Drift' });
   } else if (tool === 'rbac') {
     tabs.push({ id: 'rbac', label: 'Access' });
+  } else if (tool === 'mlops') {
+    tabs.push({ id: 'mlops', label: 'Knowledge Hub' });
   }
 
   const activeTab = tabs.find(t => t.id === tab) ? tab : tabs[1]?.id ?? 'detail';
@@ -63,6 +66,7 @@ function RightPanel() {
         {activeTab === 'cost' && <CostSummaryPanel />}
         {activeTab === 'drift' && <DriftReportPanel />}
         {activeTab === 'rbac' && <RBACDetailPanel />}
+        {activeTab === 'mlops' && <MLOpsDetailPanel />}
       </div>
     </div>
   );
@@ -111,7 +115,7 @@ function AppInner() {
               <div className="flex-1 min-h-0">
                 <EditorPanel />
               </div>
-              {(state.activeTool === 'terraform' || state.activeTool === 'cost') && <FileUpload />}
+              {(state.activeTool === 'terraform' || state.activeTool === 'cost' || state.activeTool === 'mlops') && <FileUpload />}
             </div>
           </Panel>
 

@@ -1,5 +1,6 @@
 import type { ToolDescriptor } from './types';
 import { SAMPLES as tfSamples } from '../utils/samples';
+import { MLOPS_PRESETS } from './mlops/presets';
 
 export const TOOLS: ToolDescriptor[] = [
   {
@@ -91,6 +92,15 @@ export const TOOLS: ToolDescriptor[] = [
         }, null, 2),
       },
     ],
+  },
+  {
+    id: 'mlops',
+    label: 'MLOps Visualizer',
+    shortLabel: 'MLOps',
+    icon: 'M',
+    editorLanguage: 'hcl',
+    placeholder: 'Paste your Terraform ML infrastructure code here or use a preset above...',
+    samples: MLOPS_PRESETS,
   },
 ];
 

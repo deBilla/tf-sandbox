@@ -5,6 +5,7 @@ import { validate } from '../validator';
 import { annotateCosts } from '../tools/cost/parser';
 import { parseStateJson, computeDrift } from '../tools/drift/parser';
 import { parseRBAC } from '../tools/rbac/parser';
+import { analyzeMLOps } from '../tools/mlops/parser';
 
 interface AppContextValue {
   state: AppState;
@@ -65,6 +66,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const { graph, rbac } = parseRBAC(state.code);
         dispatch({ type: 'SET_GRAPH', payload: graph });
         dispatch({ type: 'SET_RBAC_DATA', payload: rbac });
+      } else if (tool === 'mlops') {
+        const graph = parseTerraform(state.code);
+        dispatch({ type: 'SET_GRAPH', payload: graph });
+        const mlops = analyzeMLOps(graph);
+        dispatch({ type: 'SET_MLOPS_DATA', payload: mlops });
       }
     }, 300);
     return () => clearTimeout(timerRef.current);
